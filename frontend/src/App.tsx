@@ -1,15 +1,16 @@
-import MermaidChart, { extractMermaidCode } from '@Components/MermaidChart'
+import CanvasToolbar from '@Components/CanvasToolbar'
+import FlowCanvas from '@Components/FlowCanvas'
+import PropertiesPanel from '@Components/PropertiesPanel'
+import { FlowchartProvider, useFlowchart } from '@Context/FlowchartContext'
 import sampleJson from '@Data/sample.json?raw'
 import sampleMd from '@Data/sample.md?raw'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
-import DownloadIcon from '@mui/icons-material/Download'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
 import {
   AppBar,
   Box,
   Button,
-  ButtonGroup,
   Divider,
   Paper,
   Tab,
@@ -18,8 +19,9 @@ import {
   Toolbar,
   Typography,
 } from '@mui/material'
-import { parseJsonToMermaid } from '@Parser/jsonToMermaid'
-import { downloadPdf, downloadPng } from '@Utils/download'
+import { parseJsonToIR } from '@Parser/jsonParser'
+import { extractMermaidCode, mermaidToIR } from '@Parser/mermaidToIR'
+import { ReactFlowProvider } from '@xyflow/react'
 import { useRef, useState } from 'react'
 
 type InputMode = 'markdown' | 'json'
@@ -35,14 +37,15 @@ function detectMode(filename: string): InputMode | null {
   return null
 }
 
-export default function App() {
+function AppContent() {
   const [mode, setMode] = useState<InputMode>('markdown')
   const [input, setInput] = useState('')
-  const [mermaidCode, setMermaidCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const chartRef = useRef<HTMLDivElement>(null)
+  const flowViewportRef = useRef<HTMLDivElement>(null)
+
+  const { flowchartData, setFlowchartData } = useFlowchart()
 
   const loadFile = (file: File) => {
     const detected = detectMode(file.name)
@@ -55,7 +58,7 @@ export default function App() {
       const text = e.target?.result as string
       setMode(detected)
       setInput(text)
-      setMermaidCode(null)
+      setFlowchartData(null)
       setError(null)
     }
     reader.readAsText(file)
@@ -84,17 +87,18 @@ export default function App() {
       const code = extractMermaidCode(input)
       if (!code) {
         setError('Mermaid 코드 블록을 찾을 수 없습니다. ```mermaid ... ``` 형식으로 입력해주세요.')
-        setMermaidCode(null)
+        setFlowchartData(null)
       } else {
-        setMermaidCode(code)
+        const data = mermaidToIR(code)
+        setFlowchartData(data)
       }
     } else if (mode === 'json') {
-      const result = parseJsonToMermaid(input)
+      const result = parseJsonToIR(input)
       if ('error' in result) {
         setError(result.error)
-        setMermaidCode(null)
+        setFlowchartData(null)
       } else {
-        setMermaidCode(result.code)
+        setFlowchartData(result.data)
       }
     }
   }
@@ -132,7 +136,7 @@ export default function App() {
           <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider', pr: 1 }}>
             <Tabs
               value={mode}
-              onChange={(_, v) => { setMode(v); setInput(''); setMermaidCode(null); setError(null) }}
+              onChange={(_, v) => { setMode(v); setInput(''); setFlowchartData(null); setError(null) }}
               sx={{ flex: 1 }}
             >
               <Tab label="Markdown" value="markdown" />
@@ -230,7 +234,7 @@ export default function App() {
           </Box>
         </Box>
 
-        {/* Right: Canvas */}
+        {/* Right: Canvas + Properties */}
         <Box
           sx={{
             flex: 1,
@@ -240,71 +244,61 @@ export default function App() {
             overflow: 'hidden',
           }}
         >
-          {/* Canvas toolbar */}
-          {mermaidCode && (
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                px: 2,
-                py: 1,
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-              }}
-            >
-              <ButtonGroup size="small" variant="outlined">
-                <Button
-                  startIcon={<DownloadIcon />}
-                  onClick={() => chartRef.current && downloadPng(chartRef.current)}
-                >
-                  PNG
-                </Button>
-                <Button
-                  startIcon={<DownloadIcon />}
-                  onClick={() => chartRef.current && downloadPdf(chartRef.current)}
-                >
-                  PDF
-                </Button>
-              </ButtonGroup>
-            </Box>
-          )}
+          {flowchartData && <CanvasToolbar flowViewport={flowViewportRef} />}
 
-          <Box
-            sx={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'auto',
-              p: 4,
-            }}
-          >
-            {mermaidCode ? (
-              <MermaidChart ref={chartRef} code={mermaidCode} />
-            ) : (
-              <Paper
-                variant="outlined"
-                sx={{
-                  px: 4,
-                  py: 3,
-                  textAlign: 'center',
-                  bgcolor: 'transparent',
-                  borderStyle: 'dashed',
-                }}
-              >
-                <AccountTreeIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-                <Typography variant="body2" color="text.disabled">
-                  입력 후 Generate를 눌러 플로우차트를 생성하세요
-                </Typography>
-                <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
-                  .md / .json 파일을 왼쪽 패널에 드래그해도 됩니다
-                </Typography>
-              </Paper>
-            )}
+          <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            <Box
+              ref={flowViewportRef}
+              sx={{ flex: 1, position: 'relative' }}
+            >
+              {flowchartData ? (
+                <FlowCanvas />
+              ) : (
+                <Box
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    p: 4,
+                  }}
+                >
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      px: 4,
+                      py: 3,
+                      textAlign: 'center',
+                      bgcolor: 'transparent',
+                      borderStyle: 'dashed',
+                    }}
+                  >
+                    <AccountTreeIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                    <Typography variant="body2" color="text.disabled">
+                      입력 후 Generate를 눌러 플로우차트를 생성하세요
+                    </Typography>
+                    <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+                      .md / .json 파일을 왼쪽 패널에 드래그해도 됩니다
+                    </Typography>
+                  </Paper>
+                </Box>
+              )}
+            </Box>
+
+            {flowchartData && <PropertiesPanel />}
           </Box>
         </Box>
       </Box>
     </Box>
+  )
+}
+
+export default function App() {
+  return (
+    <FlowchartProvider>
+      <ReactFlowProvider>
+        <AppContent />
+      </ReactFlowProvider>
+    </FlowchartProvider>
   )
 }

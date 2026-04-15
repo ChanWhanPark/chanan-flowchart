@@ -24,8 +24,10 @@
     "baseUrl": ".",
     "paths": {
       "@Components/*": ["src/components/*"],
+      "@Context/*": ["src/context/*"],
       "@Data/*": ["src/data/*"],
       "@Parser/*": ["src/parser/*"],
+      "@Types/*": ["src/types/*"],
       "@Utils/*": ["src/utils/*"]
     }
   },
