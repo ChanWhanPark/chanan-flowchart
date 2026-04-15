@@ -1,0 +1,32 @@
+{
+  "direction": "TD",
+  "nodes": [
+    { "id": "A", "label": "시작",               "type": "terminal" },
+    { "id": "B", "label": "주문 접수",           "type": "process" },
+    { "id": "C", "label": "재고 확인",           "type": "decision" },
+    { "id": "D", "label": "재고 부족 알림 발송", "type": "process" },
+    { "id": "E", "label": "결제 처리",           "type": "process" },
+    { "id": "F", "label": "결제 승인",           "type": "decision" },
+    { "id": "G", "label": "결제 실패 알림 발송", "type": "process" },
+    { "id": "H", "label": "주문 확인 이메일 발송","type": "process" },
+    { "id": "I", "label": "상품 포장 및 운송장 출력","type": "process" },
+    { "id": "J", "label": "택배사에 인계",       "type": "process" },
+    { "id": "K", "label": "고객 수령 확인",      "type": "process" },
+    { "id": "L", "label": "주문 처리 완료",      "type": "terminal" }
+  ],
+  "edges": [
+    { "from": "A", "to": "B" },
+    { "from": "B", "to": "C" },
+    { "from": "C", "to": "D", "label": "아니오" },
+    { "from": "C", "to": "E", "label": "예" },
+    { "from": "E", "to": "F" },
+    { "from": "F", "to": "G", "label": "아니오" },
+    { "from": "F", "to": "H", "label": "예" },
+    { "from": "H", "to": "I" },
+    { "from": "I", "to": "J" },
+    { "from": "J", "to": "K" },
+    { "from": "K", "to": "L" },
+    { "from": "D", "to": "L" },
+    { "from": "G", "to": "L" }
+  ]
+}
