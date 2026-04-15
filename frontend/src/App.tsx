@@ -1,3 +1,6 @@
+import MermaidChart, { extractMermaidCode } from '@Components/MermaidChart'
+import sampleJson from '@Data/sample.json?raw'
+import sampleMd from '@Data/sample.md?raw'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import DownloadIcon from '@mui/icons-material/Download'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
@@ -15,13 +18,9 @@ import {
   Toolbar,
   Typography,
 } from '@mui/material'
+import { parseJsonToMermaid } from '@Parser/jsonToMermaid'
+import { downloadPdf, downloadPng } from '@Utils/download'
 import { useRef, useState } from 'react'
-
-import MermaidChart, { extractMermaidCode } from './components/MermaidChart'
-import sampleJson from './data/sample.json?raw'
-import sampleMd from './data/sample.md?raw'
-import { parseJsonToMermaid } from './parser/jsonToMermaid'
-import { downloadPdf, downloadPng } from './utils/download'
 
 type InputMode = 'markdown' | 'json'
 
@@ -106,7 +105,7 @@ export default function App() {
       <AppBar position="static" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
         <Toolbar variant="dense">
           <AccountTreeIcon sx={{ mr: 1 }} />
-          <Typography variant="h6" fontWeight={600}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Flowchart Generator
           </Typography>
         </Toolbar>
@@ -169,21 +168,23 @@ export default function App() {
             variant="outlined"
             sx={{
               flex: 1,
+              overflow: 'hidden',
               '& .MuiOutlinedInput-root': {
                 height: '100%',
                 alignItems: 'flex-start',
                 borderRadius: 0,
                 border: 'none',
+                overflow: 'auto',
                 '& fieldset': { border: 'none' },
               },
               '& textarea': {
                 fontFamily: 'ui-monospace, Consolas, monospace',
                 fontSize: 13,
                 lineHeight: 1.6,
-                height: '100% !important',
+                overflow: 'auto !important',
               },
             }}
-            slotProps={{ input: { sx: { height: '100%' } } }}
+            slotProps={{ input: { sx: { height: '100%', overflow: 'auto' } } }}
           />
 
           {/* Drag overlay */}
@@ -203,7 +204,7 @@ export default function App() {
               }}
             >
               <UploadFileIcon sx={{ fontSize: 48, color: 'primary.main', opacity: 1 }} />
-              <Typography variant="body2" color="primary" fontWeight={600}>
+              <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
                 파일을 놓아 불러오기
               </Typography>
             </Box>

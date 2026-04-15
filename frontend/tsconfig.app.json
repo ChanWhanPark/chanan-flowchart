@@ -20,7 +20,14 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@Components/*": ["src/components/*"],
+      "@Data/*": ["src/data/*"],
+      "@Parser/*": ["src/parser/*"],
+      "@Utils/*": ["src/utils/*"]
+    }
   },
   "include": ["src"]
 }
